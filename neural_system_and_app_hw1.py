@@ -100,6 +100,15 @@ def train_network(network, train, l_rate, n_epoch, n_outputs):
 			update_weights(network, row[:-n_outputs], l_rate)
 		print('>epoch=%d, learning rate=%.2f, loss=%.8f' % (epoch, l_rate, sum_error))
 
+# Make a prediction with a network
+def predict(network, row):
+    for i in range(len(row)):
+        row[i]=(row[i]-1)/9
+    outputs = forward_propagate(network, row)
+    for i in range(len(outputs)):
+        outputs[i]=outputs[i]*199+2
+    return outputs
+
 def network_summary(network):
     print('======================================')
     print('Network Summary')
@@ -131,7 +140,7 @@ def input_normalization(data_dict):
         normalized_x=(data_dict['x'][i]-1)/9
         normalized_y=(data_dict['y'][i]-1)/9
         normalized_func=(data_dict['func'][i]-2)/199
-    normalized_input.append([normalized_x,normalized_y,normalized_func])
+        normalized_input.append([normalized_x,normalized_y,normalized_func])
     return normalized_input
 
 #network = initialize_network(2, 5, 1)
@@ -197,8 +206,9 @@ def draw3Dplot(plot_name,data_dict,color,marker):
 #draw3Dplot('validation data',validation_data,'b','o')
 #draw3Dplot('testing data',testing_data,'b','o')
 
-dataset = input_normalization(training_data)
+training_set = input_normalization(training_data)
+validation_set = input_normalization(validation_data)
 
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
-train_network(network, dataset, learning_rate, epoches, output_neurons)
+train_network(network, training_set, learning_rate, epoches, output_neurons)
 network_summary(network)

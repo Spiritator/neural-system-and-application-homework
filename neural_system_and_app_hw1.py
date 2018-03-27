@@ -89,16 +89,18 @@ def update_weights(network, row, l_rate):
 			neuron['bias'] += l_rate * neuron['delta']
             
 # Train a network for a fixed number of epochs
-def train_network(network, train, l_rate, n_epoch, n_outputs):
+def train_network(network, train, validation, l_rate, n_epoch, n_outputs):
 	for epoch in range(n_epoch):
 		sum_error = 0
 		for row in train:
 			outputs = forward_propagate(network, row[:-n_outputs])
 			expected = [row[-i-1] for i in reversed(range(n_outputs))]
-			sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
+			train_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
+            train_accuracy = 1 - train_sum_error
 			backward_propagate_error(network, expected)
 			update_weights(network, row[:-n_outputs], l_rate)
-		print('>epoch=%d, learning rate=%.2f, loss=%.8f' % (epoch, l_rate, sum_error))
+
+		print('>epoch=%d, train_accuracy=%.8f, train_loss=%.8f' % (epoch, train_accuracy, train_sum_error))
 
 # Make a prediction with a network
 def predict(network, row):

@@ -90,17 +90,28 @@ def update_weights(network, row, l_rate):
             
 # Train a network for a fixed number of epochs
 def train_network(network, train, validation, l_rate, n_epoch, n_outputs):
-	for epoch in range(n_epoch):
-		sum_error = 0
-		for row in train:
-			outputs = forward_propagate(network, row[:-n_outputs])
-			expected = [row[-i-1] for i in reversed(range(n_outputs))]
-			train_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            train_accuracy = 1 - train_sum_error
-			backward_propagate_error(network, expected)
-			update_weights(network, row[:-n_outputs], l_rate)
+    for epoch in range(n_epoch):
+        train_sum_error = 0
+        train_accuracy = 0
+        for row in train:
+            outputs = forward_propagate(network, row[:-n_outputs])
+            expected = [row[-i-1] for i in reversed(range(n_outputs))]
+            train_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
+            train_accuracy += sum([(1-(abs(expected[i]-outputs[i])/expected[i])) for i in range(len(expected))])/len(expected)
+            backward_propagate_error(network, expected)
+            update_weights(network, row[:-n_outputs], l_rate)
+        train_accuracy = train_accuracy/len(train)
+        
+        validation_sum_error = 0
+        validation_accuracy = 0
+        for row in validation:
+            outputs = forward_propagate(network, row[:-n_outputs])
+            expected = [row[-i-1] for i in reversed(range(n_outputs))]
+            validation_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
+            validation_accuracy += sum([(1-(abs(expected[i]-outputs[i])/expected[i])) for i in range(len(expected))])/len(expected)
+        validation_accuracy = validation_accuracy/len(validation)
 
-		print('>epoch=%d, train_accuracy=%.8f, train_loss=%.8f' % (epoch, train_accuracy, train_sum_error))
+        print('>epoch=%d, acc=%.4f, loss=%.4f, val_acc=%.4f, val_loss=%.4f' % (epoch, train_accuracy, train_sum_error, validation_accuracy, validation_sum_error))
 
 # Make a prediction with a network
 def predict(network, row):
@@ -129,10 +140,10 @@ def network_summary(network):
             print(network[layer][neuron]['weights'])
             print('        bias   :',end='')
             print(network[layer][neuron]['bias'])
-            print('        output :',end='')
-            print(network[layer][neuron]['output'])
-            print('        delta  :',end='')
-            print(network[layer][neuron]['delta'])
+#            print('        output :',end='')
+#            print(network[layer][neuron]['output'])
+#            print('        delta  :',end='')
+#            print(network[layer][neuron]['delta'])
         print('')
 
 #input normalization
@@ -212,5 +223,5 @@ training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
 
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
-train_network(network, training_set, learning_rate, epoches, output_neurons)
+train_network(network, training_set, validation_set, learning_rate, epoches, output_neurons)
 network_summary(network)

@@ -11,12 +11,16 @@ references:
 
 import random
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
-learning_rate=0.1
-epoches=200
 input_neurons=2
 hidden_neurons=5
 output_neurons=1
+learning_rate=0.1
+momentum_rate=0.5
+epoches=200
+batch_size=1
 
 #the simulation function
 def simfunc(x,y):
@@ -26,9 +30,9 @@ def simfunc(x,y):
 # Initialize a network
 def initialize_network(n_inputs, n_hidden, n_outputs):
 	network = list()
-	hidden_layer = [{'weights':[random.random() for i in range(n_inputs)],'bias':random.random()} for i in range(n_hidden)]
+	hidden_layer = [{'weights':[random.random() for i in range(n_inputs)],'momentum':[0.0 for i in range(n_inputs)],'bias':random.random(),'bias_momentum':0.0} for i in range(n_hidden)]
 	network.append(hidden_layer)
-	output_layer = [{'weights':[random.random() for i in range(n_hidden)],'bias':random.random()} for i in range(n_outputs)]
+	output_layer = [{'weights':[random.random() for i in range(n_hidden)],'momentum':[0.0 for i in range(n_hidden)],'bias':random.random(),'bias_momentum':0.0} for i in range(n_outputs)]
 	network.append(output_layer)
 	return network
 
@@ -78,40 +82,44 @@ def backward_propagate_error(network, expected):
 			neuron['delta'] = errors[j] * dsigmoid(neuron['output'])
 
 # Update network weights with error
-def update_weights(network, row, l_rate):
-	for i in range(len(network)):
-		inputs = row
-		if i != 0:
-			inputs = [neuron['output'] for neuron in network[i - 1]]
-		for neuron in network[i]:
-			for j in range(len(inputs)):
-				neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-			neuron['bias'] += l_rate * neuron['delta']
+def update_weights(network, row, l_rate, m_rate):
+    for i in range(len(network)):
+        inputs = row
+        if i != 0:
+            inputs = [neuron['output'] for neuron in network[i - 1]]
+        for neuron in network[i]:
+            for j in range(len(inputs)):
+                delta_weight = l_rate * neuron['delta'] * inputs[j] + m_rate * neuron['momentum'][j]
+                neuron['weights'][j] += delta_weight
+                neuron['momentum'][j] = delta_weight
+            delta_bias = l_rate * neuron['delta'] + m_rate * neuron['bias_momentum']     
+            neuron['bias'] += delta_bias
+            neuron['bias_momemtum'] = delta_bias
             
 # Train a network for a fixed number of epochs
-def train_network(network, train, validation, l_rate, n_epoch, n_outputs):
+def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs, batch_size):
+    train_loss=[]
+    validation_loss=[]
+    
     for epoch in range(n_epoch):
         train_sum_error = 0
-        train_accuracy = 0
         for row in train:
             outputs = forward_propagate(network, row[:-n_outputs])
             expected = [row[-i-1] for i in reversed(range(n_outputs))]
             train_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            train_accuracy += sum([(1-(abs(expected[i]-outputs[i])/expected[i])) for i in range(len(expected))])/len(expected)
             backward_propagate_error(network, expected)
-            update_weights(network, row[:-n_outputs], l_rate)
-        train_accuracy = train_accuracy/len(train)
+            update_weights(network, row[:-n_outputs], l_rate, m_rate)
+        train_loss.append(train_sum_error)
         
         validation_sum_error = 0
-        validation_accuracy = 0
         for row in validation:
             outputs = forward_propagate(network, row[:-n_outputs])
             expected = [row[-i-1] for i in reversed(range(n_outputs))]
             validation_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            validation_accuracy += sum([(1-(abs(expected[i]-outputs[i])/expected[i])) for i in range(len(expected))])/len(expected)
-        validation_accuracy = validation_accuracy/len(validation)
+        validation_loss.append(validation_sum_error)
 
-        print('>epoch=%d, acc=%.4f, loss=%.4f, val_acc=%.4f, val_loss=%.4f' % (epoch, train_accuracy, train_sum_error, validation_accuracy, validation_sum_error))
+        print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
+    return [train_loss,validation_loss]
 
 # Make a prediction with a network
 def predict(network, row):
@@ -156,6 +164,33 @@ def input_normalization(data_dict):
         normalized_input.append([normalized_x,normalized_y,normalized_func])
     return normalized_input
 
+#plot loss descent during training            
+def show_train_history(train,validation,title,ylabel):
+    plt.plot([i for i in range(len(train))],train)
+    plt.plot([i for i in range(len(validation))],validation)
+    plt.title(title)
+    plt.yscale('log')
+    plt.ylabel(ylabel)
+    plt.xlabel('Epoch')
+    plt.legend(['train', 'validation'], loc='upper right')
+    plt.show()
+
+#draw 3D plot of datasets
+def draw3Dplot(plot_name,data_dict,color,marker):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    for i in range(len(data_dict['func'])):
+        ax.scatter(data_dict['x'][i],data_dict['y'][i],data_dict['func'][i], c=color, marker=marker)
+    
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('F(X,Y)')
+    plt.title(plot_name)
+    
+    plt.show()
+    
+
 #network = initialize_network(2, 5, 1)
 #for layer in network:
 #	print(layer)
@@ -198,23 +233,7 @@ for i in range(100):
     testing_data['y'].append(y_tmp)
     testing_data['func'].append(func_tmp)
     
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
 
-def draw3Dplot(plot_name,data_dict,color,marker):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    for i in range(len(data_dict['func'])):
-        ax.scatter(data_dict['x'][i],data_dict['y'][i],data_dict['func'][i], c=color, marker=marker)
-    
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('F(X,Y)')
-    plt.title(plot_name)
-    
-    plt.show()
-    
 #draw3Dplot('training data',training_data,'b','o')
 #draw3Dplot('validation data',validation_data,'b','o')
 #draw3Dplot('testing data',testing_data,'b','o')
@@ -223,5 +242,9 @@ training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
 
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
-train_network(network, training_set, validation_set, learning_rate, epoches, output_neurons)
+print('Initial Network\n')
 network_summary(network)
+train_loss_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
+print('Trained Network\n')
+network_summary(network)
+show_train_history(train_loss_summary[0],train_loss_summary[1],'loss','loss (log)')

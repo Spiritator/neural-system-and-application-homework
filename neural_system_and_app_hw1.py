@@ -20,7 +20,7 @@ output_neurons=1
 learning_rate=0.1
 momentum_rate=0.5
 epoches=200
-batch_size=1
+batch_size=50
 
 #the simulation function
 def simfunc(x,y):
@@ -80,6 +80,7 @@ def backward_propagate_error(network, expected):
 		for j in range(len(layer)):
 			neuron = layer[j]
 			neuron['delta'] = errors[j] * dsigmoid(neuron['output'])
+			neuron['batch_delta_sum'] += neuron['delta']
 
 # Update network weights with error
 def update_weights(network, row, l_rate, m_rate):
@@ -94,7 +95,7 @@ def update_weights(network, row, l_rate, m_rate):
                 neuron['momentum'][j] = delta_weight
             delta_bias = l_rate * neuron['delta'] + m_rate * neuron['bias_momentum']     
             neuron['bias'] += delta_bias
-            neuron['bias_momemtum'] = delta_bias
+            neuron['bias_momentum'] = delta_bias
             
 # Train a network for a fixed number of epochs
 def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs, batch_size):
@@ -102,12 +103,28 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
     validation_loss=[]
     
     for epoch in range(n_epoch):
+        batch_train=[train[i:i+batch_size] for i in range(0,len(train),batch_size)]
+        
         train_sum_error = 0
-        for row in train:
-            outputs = forward_propagate(network, row[:-n_outputs])
-            expected = [row[-i-1] for i in reversed(range(n_outputs))]
-            train_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            backward_propagate_error(network, expected)
+        for batch in batch_train:
+            for i in range(len(network)):
+                layer = network[i]
+                for j in range(len(layer)):
+                    neuron = layer[j]
+                    neuron['batch_delta_sum'] = 0.0
+            
+            for row in batch:
+                outputs = forward_propagate(network, row[:-n_outputs])
+                expected = [row[-i-1] for i in reversed(range(n_outputs))]
+                train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+                backward_propagate_error(network, expected)
+                
+            for i in range(len(network)):
+                layer = network[i]
+                for j in range(len(layer)):
+                    neuron = layer[j]
+                    neuron['delta']=neuron['batch_delta_sum']/batch_size
+                
             update_weights(network, row[:-n_outputs], l_rate, m_rate)
         train_loss.append(train_sum_error)
         
@@ -115,7 +132,7 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
         for row in validation:
             outputs = forward_propagate(network, row[:-n_outputs])
             expected = [row[-i-1] for i in reversed(range(n_outputs))]
-            validation_sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
+            validation_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
         validation_loss.append(validation_sum_error)
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
@@ -247,4 +264,4 @@ network_summary(network)
 train_loss_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
 print('Trained Network\n')
 network_summary(network)
-show_train_history(train_loss_summary[0],train_loss_summary[1],'loss','loss (log)')
+show_train_history(train_loss_summary[0],train_loss_summary[1],'loss','MSE (log)')

@@ -20,7 +20,7 @@ output_neurons=1
 learning_rate=0.1
 momentum_rate=0.5
 epoches=200
-batch_size=50
+batch_size=1
 
 #the simulation function
 def simfunc(x,y):
@@ -136,7 +136,7 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
         validation_loss.append(validation_sum_error)
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
-    return [train_loss,validation_loss]
+    return {'train':train_loss,'validation':validation_loss}
 
 # Make a prediction with a network
 def predict(network, row):
@@ -147,6 +147,19 @@ def predict(network, row):
         outputs[i]=outputs[i]*199+2
     return outputs
 
+#evaluate testing result
+def testing_network(network,testing_data):
+    test_result_data={'x':[],'y':[],'func':[],'predict':[]}
+    for i in range(len(testing_data['func'])):
+        predict_tmp=predict(network,[testing_data['x'][i],testing_data['y'][i]])
+        test_result_data['x'].append(testing_data['x'][i])
+        test_result_data['y'].append(testing_data['y'][i])
+        test_result_data['func'].append(testing_data['func'][i])
+        test_result_data['predict'].append(predict_tmp[0])
+    
+    return test_result_data
+    
+#print network weight
 def network_summary(network):
     print('======================================')
     print('Network Summary')
@@ -197,12 +210,28 @@ def draw3Dplot(plot_name,data_dict,color,marker):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    for i in range(len(data_dict['func'])):
-        ax.scatter(data_dict['x'][i],data_dict['y'][i],data_dict['func'][i], c=color, marker=marker)
+    ax.scatter(data_dict['x'],data_dict['y'],data_dict['func'], c=color, marker=marker, depthshade=False)
     
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('F(X,Y)')
+    plt.title(plot_name)
+    
+    plt.show()
+    
+#view testing result in 3D plot
+def draw_test_result_3Dplot(plot_name,data_dict,color,marker):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(data_dict['x'],data_dict['y'],data_dict['func'], c=color[0], marker=marker[0], label='label', depthshade=False)
+    
+    ax.scatter(data_dict['x'],data_dict['y'],data_dict['predict'], c=color[1], marker=marker[1], label='predict', depthshade=False)
+    
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('F(X,Y)')
+    ax.legend(loc='upper right')
     plt.title(plot_name)
     
     plt.show()
@@ -251,9 +280,9 @@ for i in range(100):
     testing_data['func'].append(func_tmp)
     
 
-#draw3Dplot('training data',training_data,'b','o')
-#draw3Dplot('validation data',validation_data,'b','o')
-#draw3Dplot('testing data',testing_data,'b','o')
+draw3Dplot('training data',training_data,'b','o')
+draw3Dplot('validation data',validation_data,'g','^')
+draw3Dplot('testing data',testing_data,'r','s')
 
 training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
@@ -264,4 +293,6 @@ network_summary(network)
 train_loss_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
 print('Trained Network\n')
 network_summary(network)
-show_train_history(train_loss_summary[0],train_loss_summary[1],'loss','MSE (log)')
+show_train_history(train_loss_summary['train'],train_loss_summary['validation'],'loss','MSE (log)')
+test_result_data=testing_network(network,testing_data)
+draw_test_result_3Dplot('Test Result',test_result_data,['r','b'],['o','^'])

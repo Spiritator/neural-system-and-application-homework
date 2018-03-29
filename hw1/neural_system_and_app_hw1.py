@@ -21,7 +21,7 @@ hidden_neurons=5
 output_neurons=1
 learning_rate=0.1
 momentum_rate=0.5
-epoches=200
+epoches=1000
 batch_size=1
 
 #the simulation function
@@ -138,14 +138,14 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                     neuron['delta']=neuron['batch_delta_sum']/batch_size
                 
             update_weights(network, row[:-n_outputs], l_rate, m_rate)
-        train_loss.append(train_sum_error)
+        train_loss.append(train_sum_error/len(train))
         
         validation_sum_error = 0
         for row in validation:
             outputs = forward_propagate(network, row[:-n_outputs])
             expected = [row[-i-1] for i in reversed(range(n_outputs))]
             validation_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
-        validation_loss.append(validation_sum_error)
+        validation_loss.append(validation_sum_error/len(validation))
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
     return {'train':train_loss,'validation':validation_loss}
@@ -292,9 +292,9 @@ for i in range(100):
     testing_data['func'].append(func_tmp)
     
 
-draw3Dplot('training data',training_data,'b','o')
-draw3Dplot('validation data',validation_data,'g','^')
-draw3Dplot('testing data',testing_data,'r','s')
+#draw3Dplot('training data',training_data,'b','o')
+#draw3Dplot('validation data',validation_data,'g','^')
+#draw3Dplot('testing data',testing_data,'r','s')
 
 training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
@@ -305,6 +305,7 @@ network_summary(network)
 train_loss_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
 print('Trained Network\n')
 network_summary(network)
+print('>train loss=%.5g, validation loss=%.5g' % (train_loss_summary['train'][-1], train_loss_summary['validation'][-1]))
 show_train_history(train_loss_summary['train'],train_loss_summary['validation'],'loss','MSE (log)')
 test_result_data=testing_network(network,testing_data)
 draw_test_result_3Dplot('Test Result',test_result_data,['r','b'],['o','^'])

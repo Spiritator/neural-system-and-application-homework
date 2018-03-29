@@ -32,9 +32,9 @@ def simfunc(x,y):
 # Initialize a network
 def initialize_network(n_inputs, n_hidden, n_outputs):
 	network = list()
-	hidden_layer = [{'weights':[random.random() for i in range(n_inputs)],'momentum':[0.0 for i in range(n_inputs)],'bias':random.random(),'bias_momentum':0.0} for i in range(n_hidden)]
+	hidden_layer = [{'weights':[random.random() for i in range(n_inputs)],'bias':random.random()} for i in range(n_hidden)]
 	network.append(hidden_layer)
-	output_layer = [{'weights':[random.random() for i in range(n_hidden)],'momentum':[0.0 for i in range(n_hidden)],'bias':random.random(),'bias_momentum':0.0} for i in range(n_outputs)]
+	output_layer = [{'weights':[random.random() for i in range(n_hidden)],'bias':random.random()} for i in range(n_outputs)]
 	network.append(output_layer)
 	return network
 
@@ -104,11 +104,20 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
     train_loss=[]
     validation_loss=[]
     
+    #set initial weight momentum to 0
+    for i in range(len(network)):
+        layer = network[i]
+        for j in range(len(layer)):
+            neuron = layer[j]
+            neuron['momentum'] = [0.0 for k in range(len(neuron['weights']))]
+            neuron['bias_momentum'] = 0.0
+    
     for epoch in range(n_epoch):
         batch_train=[train[i:i+batch_size] for i in range(0,len(train),batch_size)]
         
         train_sum_error = 0
         for batch in batch_train:
+            #set batch error sum to 0
             for i in range(len(network)):
                 layer = network[i]
                 for j in range(len(layer)):
@@ -120,7 +129,8 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                 expected = [row[-i-1] for i in reversed(range(n_outputs))]
                 train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
                 backward_propagate_error(network, expected)
-                
+            
+            #calculate batch average error
             for i in range(len(network)):
                 layer = network[i]
                 for j in range(len(layer)):

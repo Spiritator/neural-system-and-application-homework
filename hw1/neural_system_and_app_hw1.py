@@ -11,7 +11,7 @@ references:
     https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/
 """
 
-import random
+import random,time
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -21,8 +21,8 @@ hidden_neurons=5
 output_neurons=1
 learning_rate=0.1
 momentum_rate=0.5
-epoches=1000
-batch_size=1
+epoches=2000
+batch_size=10
 
 #the simulation function
 def simfunc(x,y):
@@ -103,6 +103,7 @@ def update_weights(network, row, l_rate, m_rate):
 def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs, batch_size):
     train_loss=[]
     validation_loss=[]
+    runtime = time.time()
     
     #set initial weight momentum to 0
     for i in range(len(network)):
@@ -148,7 +149,7 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
         validation_loss.append(validation_sum_error/len(validation))
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
-    return {'train':train_loss,'validation':validation_loss}
+    return {'train':train_loss,'validation':validation_loss,'runtime':time.time()-runtime}
 
 # Make a prediction with a network
 def predict(network, row):
@@ -302,10 +303,10 @@ validation_set = input_normalization(validation_data)
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
 print('Initial Network\n')
 network_summary(network)
-train_loss_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
+train_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
 print('Trained Network\n')
 network_summary(network)
-print('>train loss=%.5g, validation loss=%.5g' % (train_loss_summary['train'][-1], train_loss_summary['validation'][-1]))
-show_train_history(train_loss_summary['train'],train_loss_summary['validation'],'loss','MSE (log)')
+print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['train'][-1], train_summary['validation'][-1], train_summary['runtime']))
+show_train_history(train_summary['train'],train_summary['validation'],'loss','MSE (log)')
 test_result_data=testing_network(network,testing_data)
 draw_test_result_3Dplot('Test Result',test_result_data,['r','b'],['o','^'])

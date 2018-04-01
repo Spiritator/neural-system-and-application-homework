@@ -22,7 +22,7 @@ output_neurons=1
 learning_rate=0.1
 momentum_rate=0.5
 epoches=2000
-batch_size=10
+batch_size=1
 
 #the simulation function
 def simfunc(x,y):
@@ -196,6 +196,21 @@ def network_summary(network):
 #            print('        delta  :',end='')
 #            print(network[layer][neuron]['delta'])
         print('')
+        
+def save_network(network):
+    saved_network=[]
+    for i in range(len(network)):
+        layer = network[i]
+        saved_layer = []
+        for j in range(len(layer)):
+            neuron = layer[j]
+            saved_neuron={}
+            saved_neuron['weights'] = neuron['weights']
+            saved_neuron['bias'] = neuron['bias']
+            saved_layer.append(saved_neuron)
+        saved_network.append(saved_layer)
+    
+    return saved_network
 
 #input normalization
 def input_normalization(data_dict):
@@ -310,3 +325,4 @@ print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['
 show_train_history(train_summary['train'],train_summary['validation'],'loss','MSE (log)')
 test_result_data=testing_network(network,testing_data)
 draw_test_result_3Dplot('Test Result',test_result_data,['r','b'],['o','^'])
+saved_network=save_network(network)

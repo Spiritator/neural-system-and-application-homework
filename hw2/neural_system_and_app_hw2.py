@@ -9,6 +9,9 @@ my homework of the class "neural network and appplication" homework 2
 references:
     http://darren1231.pixnet.net/blog/post/339526256-%E6%89%8B%E6%8A%8A%E6%89%8B%E5%AF%A6%E4%BD%9C%E5%87%BA%E9%A1%9E%E7%A5%9E%E7%B6%93%E5%85%AC%E5%BC%8F-with-ipython-notebook
     https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/
+    
+question: Use radial basis function ANN to simulate the function f(x)=2(x^2)+1/4(y^2) with radial basis function is Gaussian function and standard deviation is dmax/sqrt(m1), x,y are between -2 to 2.
+    
 """
 
 import random,time
@@ -26,31 +29,31 @@ batch_size=1
 
 #the simulation function
 def simfunc(x,y):
-    function=2*(x**2)+(y**2)/4
+    function=2*np.power(x, 2.)+np.power(y, 2.)/4
     return function
  
 # Initialize a network
 def initialize_network(n_inputs, n_hidden, n_outputs):
 	network = list()
-	hidden_layer = [{'weights':[random.random() for i in range(n_inputs)],'bias':random.random()} for i in range(n_hidden)]
+	hidden_layer = [{'centers':np.array([np.random.random(n_inputs)])} for i in range(n_hidden)]
 	network.append(hidden_layer)
-	output_layer = [{'weights':[random.random() for i in range(n_hidden)],'bias':random.random()} for i in range(n_outputs)]
+	output_layer = [{'weights':np.array([np.random.random(n_hidden)]),'bias':np.random.random()} for i in range(n_outputs)]
 	network.append(output_layer)
 	return network
 
 # Calculate neuron activation for an input
-def activate(weights,bias, inputs):
-	activation = bias
-	for i in range(len(weights)):
-		activation += weights[i] * inputs[i]
+def activate(weights, bias, inputs):
+	activation = np.dot(weights,np.transpose(inputs))
+	activation = activation[0][0] + bias
 	return activation
 
-#sigmoid function
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-#derivative sigmoid function
-def dsigmoid(output):
-    return output*(1.0-output)
+#Gaussion Function
+def gaussian(x, c, dmax, M):
+    return np.exp(-M / (2 * np.power(dmax, 2.)) * np.power(x - c, 2.))
+
+#Radial basis Function
+def radial_basis(x, c, **kwargs):
+    #blabla
 
 # Forward propagate input to a network output
 def forward_propagate(network, row):
@@ -58,7 +61,7 @@ def forward_propagate(network, row):
 	for layer in network:
 		new_inputs = []
 		for neuron in layer:
-			activation = activate(neuron['weights'],neuron['bias'], inputs)
+			activation = activate(neuron['weights'], neuron['bias'], inputs)
 			neuron['output'] = sigmoid(activation)
 			new_inputs.append(neuron['output'])
 		inputs = new_inputs
@@ -278,7 +281,7 @@ def draw_test_result_3Dplot(plot_name,data_dict,color,marker):
 #for layer in network:
 #	print(layer)
     
-random.seed(1)
+np.random.seed(1)
 #data generation
 training_data={'x':[],'y':[],'func':[]}
 for i in range(400):

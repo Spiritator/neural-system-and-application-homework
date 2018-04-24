@@ -4,11 +4,14 @@ Created on Sun Mar 25 12:05:33 2018
 
 @author: 蔡永聿
 
-my homework of the class neural network and appplication homework 1
+my homework of the class "neural network and appplication" homework 1
 
 references:
     http://darren1231.pixnet.net/blog/post/339526256-%E6%89%8B%E6%8A%8A%E6%89%8B%E5%AF%A6%E4%BD%9C%E5%87%BA%E9%A1%9E%E7%A5%9E%E7%B6%93%E5%85%AC%E5%BC%8F-with-ipython-notebook
     https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/
+    
+question: Use backprapagation multi-layer perceptron neural network to simulate the function f(x)=sin(x)+2(y^2) , x,y are between 1 to 10.
+    
 """
 
 import random,time

@@ -14,18 +14,20 @@ question: Use radial basis function ANN to simulate the function f(x)=2(x^2)+1/4
     
 """
 
-import random,time
+import time
 import numpy as np
+import scipy as scipy
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 input_neurons=2
 hidden_neurons=5
 output_neurons=1
-learning_rate=0.1
+weight_l_rate=0.1
+center_l_rate=0.1
+delta_l_rate=0.1
 momentum_rate=0.5
 epoches=2000
-batch_size=1
 
 #the simulation function
 def simfunc(x,y):
@@ -34,12 +36,22 @@ def simfunc(x,y):
  
 # Initialize a network
 def initialize_network(n_inputs, n_hidden, n_outputs):
-	network = list()
-	hidden_layer = [{'centers':np.array([np.random.random(n_inputs)])} for i in range(n_hidden)]
-	network.append(hidden_layer)
-	output_layer = [{'weights':np.array([np.random.random(n_hidden)]),'bias':np.random.random()} for i in range(n_outputs)]
-	network.append(output_layer)
-	return network
+    network = list()
+    hidden_layer = [{'centers':np.array([np.random.random(n_inputs)])} for i in range(n_hidden)]
+    coordinates=np.zeros((n_hidden,n_inputs))
+    for i in range(n_hidden):
+        neuron=hidden_layer[i]
+        coordinates[i]=neuron['centers']
+    dmax=np.max(scipy.spatial.distance.cdist(coordinates, coordinates, 'euclidean'))
+    sigma=dmax/np.sqrt(n_hidden)
+    for i in range(n_hidden):
+        neuron=hidden_layer[i]
+        neuron['sigma']=sigma
+    network.append(hidden_layer)
+    output_layer = [{'weights':np.array([np.random.random(n_hidden)]),'bias':np.random.random()} for i in range(n_outputs)]
+    network.append(output_layer)
+    
+    return network
 
 # Calculate neuron activation for an input
 def activate(weights, bias, inputs):
@@ -48,8 +60,8 @@ def activate(weights, bias, inputs):
 	return activation
 
 #Gaussion Function
-def gaussian(x, c, dmax, M):
-    return np.exp(-M / (2 * np.power(dmax, 2.)) * np.power(x - c, 2.))  
+def gaussian(distance, sigma):
+    return np.exp(-np.power(distance, 2.) / (2 * np.power(sigma, 2.)))
 
 # Forward propagate input to a network output
 def forward_propagate(network, row):
@@ -59,12 +71,11 @@ def forward_propagate(network, row):
         new_inputs = np.array([])
         if i == 0:
             for neuron in layer:
-                neuron['output'] = gaussian(row, neuron['centers'], dmax, len(layer))
+                neuron['output'] = gaussian(np.linalg.norm(row - neuron['centers']), neuron['sigma'])
                 new_inputs=np.append(new_inputs,neuron['output'])
         elif i == len(network)-1:
             for neuron in layer:
-                activation = activate(neuron['weights'],neuron['bias'], inputs)
-                neuron['output'] = sigmoid(activation)
+                neuron['output'] = activate(neuron['weights'],neuron['bias'], inputs)
                 new_inputs=np.append(new_inputs,neuron['output'])
         else:
             pass
@@ -88,64 +99,43 @@ def backward_propagate_error(network, expected):
 				errors.append(expected[j] - neuron['output'])
 		for j in range(len(layer)):
 			neuron = layer[j]
-			neuron['delta'] = errors[j] * dsigmoid(neuron['output'])
-			neuron['batch_delta_sum'] += neuron['delta']
+			neuron['delta'] = errors[j]
 
 # Update network weights with error
-def update_weights(network, row, l_rate, m_rate):
-    for i in range(len(network)):
+def update_weights(network, row, w_l_rate, c_l_rate, sig_l_rate):
+    for i in reversed(range(len(network))):
         inputs = row
-        if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
-        for neuron in network[i]:
-            for j in range(len(inputs)):
-                delta_weight = l_rate * neuron['delta'] * inputs[j] + m_rate * neuron['momentum'][j]
-                neuron['weights'][j] += delta_weight
-                neuron['momentum'][j] = delta_weight
-            delta_bias = l_rate * neuron['delta'] + m_rate * neuron['bias_momentum']     
-            neuron['bias'] += delta_bias
-            neuron['bias_momentum'] = delta_bias
+        if i==1:
+            for neuron in network[i]:
+                delta_weight=np.array([])
+                for j in range(len(network[i-1])):
+                    delta_weight = np.append(delta_weight, w_l_rate * neuron['delta'] * network[i-1][j]['output'])
+                neuron['delta_weight']=np.expand_dims(delta_weight,0)
+                neuron['delta_bias'] = w_l_rate * neuron['delta']
+        else:
+            for neuron in network[i]:
+                neuron['delta_center'] = c_l_rate * neuron['delta'] / np.power(neuron['sigma'],2.) * neuron['output'] * (inputs - neuron['centers'])
+                neuron['delta_sigma'] = sig_l_rate * neuron['delta'] / np.power(neuron['sigma'],3.) * neuron['output'] * np.power(inputs - neuron['centers'],2.)
+            
+    neuron['weights'] += neuron['delta_weight']
+    neuron['bias'] += neuron['delta_bias']
+    neuron['centers'] += neuron['delta_center']
+    neuron['sigma'] += neuron['delta_sigma']
             
 # Train a network for a fixed number of epochs
-def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs, batch_size):
+def train_network(network, train, validation, w_l_rate, c_l_rate, sig_l_rate, n_epoch, n_outputs):
     train_loss=[]
     validation_loss=[]
     runtime = time.time()
     
-    #set initial weight momentum to 0
-    for i in range(len(network)):
-        layer = network[i]
-        for j in range(len(layer)):
-            neuron = layer[j]
-            neuron['momentum'] = [0.0 for k in range(len(neuron['weights']))]
-            neuron['bias_momentum'] = 0.0
-    
     for epoch in range(n_epoch):
-        batch_train=[train[i:i+batch_size] for i in range(0,len(train),batch_size)]
-        
         train_sum_error = 0
-        for batch in batch_train:
-            #set batch error sum to 0
-            for i in range(len(network)):
-                layer = network[i]
-                for j in range(len(layer)):
-                    neuron = layer[j]
-                    neuron['batch_delta_sum'] = 0.0
-            
-            for row in batch:
-                outputs = forward_propagate(network, row[:-n_outputs])
-                expected = [row[-i-1] for i in reversed(range(n_outputs))]
-                train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
-                backward_propagate_error(network, expected)
-            
-            #calculate batch average error
-            for i in range(len(network)):
-                layer = network[i]
-                for j in range(len(layer)):
-                    neuron = layer[j]
-                    neuron['delta']=neuron['batch_delta_sum']/batch_size
-                
-            update_weights(network, row[:-n_outputs], l_rate, m_rate)
+        for row in train:
+            outputs = forward_propagate(network, row[:-n_outputs])
+            expected = [row[-i-1] for i in reversed(range(n_outputs))]
+            train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+            backward_propagate_error(network, expected)                
+            update_weights(network, row[:-n_outputs], w_l_rate, c_l_rate, sig_l_rate)
         train_loss.append(train_sum_error/len(train))
         
         validation_sum_error = 0
@@ -325,7 +315,7 @@ validation_set = input_normalization(validation_data)
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
 print('Initial Network\n')
 network_summary(network)
-train_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons, batch_size)
+train_summary=train_network(network, training_set, validation_set, learning_rate, momentum_rate, epoches, output_neurons)
 print('Trained Network\n')
 network_summary(network)
 print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['train'][-1], train_summary['validation'][-1], train_summary['runtime']))

@@ -49,23 +49,27 @@ def activate(weights, bias, inputs):
 
 #Gaussion Function
 def gaussian(x, c, dmax, M):
-    return np.exp(-M / (2 * np.power(dmax, 2.)) * np.power(x - c, 2.))
-
-#Radial basis Function
-def radial_basis(x, c, **kwargs):
-    #blabla
+    return np.exp(-M / (2 * np.power(dmax, 2.)) * np.power(x - c, 2.))  
 
 # Forward propagate input to a network output
 def forward_propagate(network, row):
-	inputs = row
-	for layer in network:
-		new_inputs = []
-		for neuron in layer:
-			activation = activate(neuron['weights'], neuron['bias'], inputs)
-			neuron['output'] = sigmoid(activation)
-			new_inputs.append(neuron['output'])
-		inputs = new_inputs
-	return inputs
+    inputs = row
+    for i in range(len(network)):
+        layer = network[i]
+        new_inputs = np.array([])
+        if i == 0:
+            for neuron in layer:
+                neuron['output'] = gaussian(row, neuron['centers'], dmax, len(layer))
+                new_inputs=np.append(new_inputs,neuron['output'])
+        elif i == len(network)-1:
+            for neuron in layer:
+                activation = activate(neuron['weights'],neuron['bias'], inputs)
+                neuron['output'] = sigmoid(activation)
+                new_inputs=np.append(new_inputs,neuron['output'])
+        else:
+            pass
+        inputs = np.expand_dims(new_inputs,0)
+    return inputs
 
 # Backpropagate error and store in neurons
 def backward_propagate_error(network, expected):

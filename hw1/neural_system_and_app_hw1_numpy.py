@@ -91,12 +91,11 @@ def update_weights(network, row, l_rate, m_rate):
     for i in range(len(network)):
         inputs = row
         if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
+            inputs = np.array([[neuron['output'] for neuron in network[i - 1]]])
         for neuron in network[i]:
-            for j in range(len(inputs)):
-                delta_weight = l_rate * neuron['delta'] * inputs[j] + m_rate * neuron['momentum'][j]
-                neuron['weights'][j] += delta_weight
-                neuron['momentum'][j] = delta_weight
+            delta_weight = l_rate * neuron['delta'] * inputs + m_rate * neuron['momentum']
+            neuron['weights'] += delta_weight
+            neuron['momentum'] = delta_weight
             delta_bias = l_rate * neuron['delta'] + m_rate * neuron['bias_momentum']     
             neuron['bias'] += delta_bias
             neuron['bias_momentum'] = delta_bias
@@ -280,7 +279,7 @@ def draw_test_result_3Dplot(plot_name,data_dict,color,marker):
 #for layer in network:
 #	print(layer)
     
-random.seed(1)
+np.random.seed(1)
 #data generation
 training_data={'x':[],'y':[],'func':[]}
 for i in range(400):

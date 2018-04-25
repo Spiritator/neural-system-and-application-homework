@@ -242,7 +242,7 @@ def draw3Dplot(plot_name,data_dict,color,marker):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    ax.scatter(data_dict['x'],data_dict['y'],data_dict['func'], c=color, marker=marker, depthshade=False)
+    ax.scatter(data_dict['x'],data_dict['y'],data_dict['func'], c=color, marker=marker, depthshade=True)
     
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
@@ -268,7 +268,37 @@ def draw_test_result_3Dplot(plot_name,data_dict,color,marker):
     
     plt.show()
     
-
+#view trained centers in 2D scatter plot
+def draw_centers_scatter_plot(plot_name,data_dict,network,color,marker):
+    plt.scatter(data_dict['x'], data_dict['y'], c=color[0], marker=marker[0],label='training data')
+    center_x=[]
+    center_y=[]
+    for neuron in network[0]:
+        center_x.append(neuron['centers'][0][0])
+        center_y.append(neuron['centers'][0][1])
+    plt.scatter(center_x, center_y, c=color[1], marker=marker[1],label='centers')
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend(loc='upper right')
+    plt.title(plot_name)
+    plt.show()
+    
+#view testing result in 2D plot
+def draw_test_result_FIT_plot(plot_name,data_dict,color,marker):
+    x = np.array([0,9])
+    plt.plot(x,x,lw=2, c='tab:gray', linestyle=':' ,label='Y=T')
+    plt.scatter(data_dict['func'], data_dict['predict'], s=20, c=color, marker=marker,label='Data')
+    FIT_line = np.polyfit(data_dict['func'], data_dict['predict'], 1)
+    FIT_line = np.poly1d(FIT_line) 
+    plt.plot(x,FIT_line(x),lw=2, c='k', linestyle='-' ,label='FIT')
+    plt.xlabel("Target")
+    plt.ylabel("Output ~= %.2f T + %.4f" % (FIT_line.coefficients[0],FIT_line.coefficients[1]))
+    plt.legend(loc='upper right')
+    plot_name+='%.5f' % np.min(np.corrcoef(data_dict['func'], data_dict['predict']))
+    plt.title(plot_name)
+    plt.show()
+    
+    
 #network = initialize_network(2, 5, 1)
 #for layer in network:
 #	print(layer)
@@ -303,7 +333,7 @@ for i in range(200):
     validation_data['func'].append(func_tmp)
     
 testing_data={'x':[],'y':[],'func':[]}
-for i in range(100):
+for i in range(200):
     x_tmp=np.random.uniform(-2, 2)
     y_tmp=np.random.uniform(-2, 2)
     func_tmp=simfunc(x_tmp,y_tmp)
@@ -311,9 +341,9 @@ for i in range(100):
     testing_data['y'].append(y_tmp)
     testing_data['func'].append(func_tmp)
     
-#draw3Dplot('training data',training_data,'b','o')
-#draw3Dplot('validation data',validation_data,'g','^')
-#draw3Dplot('testing data',testing_data,'r','s')
+draw3Dplot('training data',training_data,'b','o')
+draw3Dplot('validation data',validation_data,'g','^')
+draw3Dplot('testing data',testing_data,'r','s')
 
 training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
@@ -327,5 +357,7 @@ network_summary(network)
 print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['train'][-1], train_summary['validation'][-1], train_summary['runtime']))
 show_train_history(train_summary['train'],train_summary['validation'],'loss','MSE (log)')
 test_result_data=testing_network(network,testing_data)
-draw_test_result_3Dplot('Test Result',test_result_data,['r','b'],['o','^'])
+draw_centers_scatter_plot('center scatter plot',training_data,network,['g','r'],['o','^'])
+draw_test_result_3Dplot('3D scatter plot',test_result_data,['r','b'],['o','^'])
+draw_test_result_FIT_plot('Regression R = ',test_result_data,'b','o')
 saved_network=save_network(network)

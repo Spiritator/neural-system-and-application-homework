@@ -131,18 +131,18 @@ def train_network(network, train, validation, w_l_rate, c_l_rate, sig_l_rate, n_
     for epoch in range(n_epoch):
         train_sum_error = 0
         for row in train:
-            outputs = forward_propagate(network, row[:-n_outputs])
-            expected = [row[-i-1] for i in reversed(range(n_outputs))]
-            train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+            outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
+            expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+            train_sum_error += np.sum((np.power(expected[i]-outputs[i],2.) / 2))
             backward_propagate_error(network, expected)                
-            update_weights(network, row[:-n_outputs], w_l_rate, c_l_rate, sig_l_rate)
+            update_weights(network, np.expand_dims(np.array(row[:-n_outputs]),0), w_l_rate, c_l_rate, sig_l_rate)
         train_loss.append(train_sum_error/len(train))
         
         validation_sum_error = 0
         for row in validation:
-            outputs = forward_propagate(network, row[:-n_outputs])
-            expected = [row[-i-1] for i in reversed(range(n_outputs))]
-            validation_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+            outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
+            expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+            validation_sum_error += np.sum((np.power(expected[i]-outputs[i],2.) / 2))
         validation_loss.append(validation_sum_error/len(validation))
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
@@ -150,12 +150,9 @@ def train_network(network, train, validation, w_l_rate, c_l_rate, sig_l_rate, n_
 
 # Make a prediction with a network
 def predict(network, row):
-    for i in range(len(row)):
-        row[i]=(row[i]-1)/9
+    row=np.expand_dims(np.array(row),0)
     outputs = forward_propagate(network, row)
-    for i in range(len(outputs)):
-        outputs[i]=outputs[i]*199+2
-    return outputs
+    return outputs[0]
 
 #evaluate testing result
 def testing_network(network,testing_data):
@@ -185,7 +182,7 @@ def network_summary(network):
         for neuron in range(len(network[layer])):
             print('    neuron %d' % (neuron+1))
             print('        weights:',end='')
-            print(network[layer][neuron]['weights'])
+            print(network[layer][neuron]['weights'][0])
             print('        bias   :',end='')
             print(network[layer][neuron]['bias'])
 #            print('        output :',end='')

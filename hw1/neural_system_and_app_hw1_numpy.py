@@ -75,12 +75,12 @@ def backward_propagate_error(network, expected):
 			for j in range(len(layer)):
 				error = 0.0
 				for neuron in network[i + 1]:
-					error += (neuron['weights'][j] * neuron['delta'])
+					error += (neuron['weights'][0][j] * neuron['delta'])
 				errors.append(error)
 		else:
 			for j in range(len(layer)):
 				neuron = layer[j]
-				errors.append(expected[j] - neuron['output'])
+				errors.append(expected[0][j] - neuron['output'])
 		for j in range(len(layer)):
 			neuron = layer[j]
 			neuron['delta'] = errors[j] * dsigmoid(neuron['output'])
@@ -127,9 +127,9 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                     neuron['batch_delta_sum'] = 0.0
             
             for row in batch:
-                outputs = forward_propagate(network, row[:-n_outputs])
-                expected = [row[-i-1] for i in reversed(range(n_outputs))]
-                train_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+                outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
+                expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+                train_sum_error += np.sum((np.power(expected-outputs,2.) / 2))
                 backward_propagate_error(network, expected)
             
             #calculate batch average error
@@ -139,14 +139,14 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                     neuron = layer[j]
                     neuron['delta']=neuron['batch_delta_sum']/batch_size
                 
-            update_weights(network, row[:-n_outputs], l_rate, m_rate)
+            update_weights(network, np.expand_dims(np.array(row[:-n_outputs]),0), l_rate, m_rate)
         train_loss.append(train_sum_error/len(train))
         
         validation_sum_error = 0
         for row in validation:
-            outputs = forward_propagate(network, row[:-n_outputs])
-            expected = [row[-i-1] for i in reversed(range(n_outputs))]
-            validation_sum_error += sum([((expected[i]-outputs[i])**2)/2 for i in range(len(expected))])
+            outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
+            expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+            validation_sum_error += np.sum((np.power(expected-outputs,2.) / 2))
         validation_loss.append(validation_sum_error/len(validation))
 
         print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
@@ -154,12 +154,11 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
 
 # Make a prediction with a network
 def predict(network, row):
-    for i in range(len(row)):
-        row[i]=(row[i]-1)/9
+    row=np.expand_dims(np.array(row),0)
+    row=(row-1)/9
     outputs = forward_propagate(network, row)
-    for i in range(len(outputs)):
-        outputs[i]=outputs[i]*199+2
-    return outputs
+    outputs=outputs*199+2
+    return outputs[0]
 
 #evaluate testing result
 def testing_network(network,testing_data):
@@ -189,7 +188,7 @@ def network_summary(network):
         for neuron in range(len(network[layer])):
             print('    neuron %d' % (neuron+1))
             print('        weights:',end='')
-            print(network[layer][neuron]['weights'])
+            print(network[layer][neuron]['weights'][0])
             print('        bias   :',end='')
             print(network[layer][neuron]['bias'])
 #            print('        output :',end='')
@@ -283,8 +282,8 @@ np.random.seed(1)
 #data generation
 training_data={'x':[],'y':[],'func':[]}
 for i in range(400):
-    x_tmp=random.uniform(1, 10)
-    y_tmp=random.uniform(1, 10)
+    x_tmp=np.random.uniform(1, 10)
+    y_tmp=np.random.uniform(1, 10)
     func_tmp=simfunc(x_tmp,y_tmp)
     training_data['x'].append(x_tmp)
     training_data['y'].append(y_tmp)
@@ -292,8 +291,8 @@ for i in range(400):
     
 validation_data={'x':[],'y':[],'func':[]}
 for i in range(200):
-    x_tmp=random.uniform(1, 10)
-    y_tmp=random.uniform(1, 10)
+    x_tmp=np.random.uniform(1, 10)
+    y_tmp=np.random.uniform(1, 10)
     func_tmp=simfunc(x_tmp,y_tmp)
     validation_data['x'].append(x_tmp)
     validation_data['y'].append(y_tmp)
@@ -301,8 +300,8 @@ for i in range(200):
     
 testing_data={'x':[],'y':[],'func':[]}
 for i in range(100):
-    x_tmp=random.uniform(1, 10)
-    y_tmp=random.uniform(1, 10)
+    x_tmp=np.random.uniform(1, 10)
+    y_tmp=np.random.uniform(1, 10)
     func_tmp=simfunc(x_tmp,y_tmp)
     testing_data['x'].append(x_tmp)
     testing_data['y'].append(y_tmp)

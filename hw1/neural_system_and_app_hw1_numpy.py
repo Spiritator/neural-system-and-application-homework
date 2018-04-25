@@ -111,12 +111,11 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
         layer = network[i]
         for j in range(len(layer)):
             neuron = layer[j]
-            neuron['momentum'] = [0.0 for k in range(len(neuron['weights']))]
+            neuron['momentum'] = np.array([[0.0 for k in range(len(neuron['weights'][0]))]])
             neuron['bias_momentum'] = 0.0
     
+    batch_train=np.array(np.split(train,len(train)/batch_size,0))#[train[i:i+batch_size] for i in range(0,len(train),batch_size)]
     for epoch in range(n_epoch):
-        batch_train=[train[i:i+batch_size] for i in range(0,len(train),batch_size)]
-        
         train_sum_error = 0
         for batch in batch_train:
             #set batch error sum to 0
@@ -127,8 +126,8 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                     neuron['batch_delta_sum'] = 0.0
             
             for row in batch:
-                outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
-                expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+                outputs = forward_propagate(network, row[...,:-n_outputs])
+                expected = row[...,-n_outputs:]
                 train_sum_error += np.sum((np.power(expected-outputs,2.) / 2))
                 backward_propagate_error(network, expected)
             
@@ -139,13 +138,13 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
                     neuron = layer[j]
                     neuron['delta']=neuron['batch_delta_sum']/batch_size
                 
-            update_weights(network, np.expand_dims(np.array(row[:-n_outputs]),0), l_rate, m_rate)
+            update_weights(network, row[...,:-n_outputs], l_rate, m_rate)
         train_loss.append(train_sum_error/len(train))
         
         validation_sum_error = 0
         for row in validation:
-            outputs = forward_propagate(network, np.expand_dims(np.array(row[:-n_outputs]),0))
-            expected = np.expand_dims(np.array([row[-i-1] for i in reversed(range(n_outputs))]),0)
+            outputs = forward_propagate(network, row[...,:-n_outputs])
+            expected = row[...,-n_outputs:]
             validation_sum_error += np.sum((np.power(expected-outputs,2.) / 2))
         validation_loss.append(validation_sum_error/len(validation))
 
@@ -154,7 +153,7 @@ def train_network(network, train, validation, l_rate, m_rate, n_epoch, n_outputs
 
 # Make a prediction with a network
 def predict(network, row):
-    row=np.expand_dims(np.array(row),0)
+    row=np.array([row])
     row=(row-1)/9
     outputs = forward_propagate(network, row)
     outputs=outputs*199+2
@@ -220,7 +219,7 @@ def input_normalization(data_dict):
         normalized_y=(data_dict['y'][i]-1)/9
         normalized_func=(data_dict['func'][i]-2)/199
         normalized_input.append([normalized_x,normalized_y,normalized_func])
-    return normalized_input
+    return np.expand_dims(np.array(normalized_input),1)
 
 #plot loss descent during training            
 def show_train_history(train,validation,title,ylabel):

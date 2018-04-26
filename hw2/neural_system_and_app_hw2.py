@@ -23,9 +23,9 @@ import matplotlib.pyplot as plt
 input_neurons=2
 hidden_neurons=5
 output_neurons=1
-weight_l_rate=0.1
-center_l_rate=0.1
-delta_l_rate=0.1
+weight_l_rate=0.01
+center_l_rate=0.01
+delta_l_rate=0.01
 epoches=200
 
 #the simulation function
@@ -145,7 +145,7 @@ def train_network(network, train, validation, w_l_rate, c_l_rate, sig_l_rate, n_
             validation_sum_error += np.sum((np.power(expected-outputs,2.) / 2))
         validation_loss.append(validation_sum_error/len(validation))
 
-        print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_sum_error, validation_sum_error))
+        print('>epoch=%d, loss=%.4f, val_loss=%.4f' % (epoch, train_loss[-1], validation_loss[-1]))
     return {'train':train_loss,'validation':validation_loss,'runtime':time.time()-runtime}
 
 # Make a prediction with a network
@@ -279,7 +279,7 @@ def draw_centers_scatter_plot(plot_name,data_dict,network,color,marker):
     plt.scatter(center_x, center_y, c=color[1], marker=marker[1],label='centers')
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.legend(loc='upper right')
+    plt.legend(loc=2)
     plt.title(plot_name)
     plt.show()
     
@@ -341,23 +341,25 @@ for i in range(200):
     testing_data['y'].append(y_tmp)
     testing_data['func'].append(func_tmp)
     
-draw3Dplot('training data',training_data,'b','o')
-draw3Dplot('validation data',validation_data,'g','^')
-draw3Dplot('testing data',testing_data,'r','s')
+#draw3Dplot('training data',training_data,'b','o')
+#draw3Dplot('validation data',validation_data,'g','^')
+#draw3Dplot('testing data',testing_data,'r','s')
 
 training_set = input_normalization(training_data)
 validation_set = input_normalization(validation_data)
-
+np.random.seed(6)
 network = initialize_network(input_neurons, hidden_neurons, output_neurons)
+np.random.seed(1)
 print('Initial Network\n')
 network_summary(network)
+draw_centers_scatter_plot('center scatter plot',training_data,network,['g','r'],['o','+'])
 train_summary=train_network(network, training_set, validation_set, weight_l_rate, center_l_rate, delta_l_rate, epoches, output_neurons)
 print('Trained Network\n')
 network_summary(network)
 print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['train'][-1], train_summary['validation'][-1], train_summary['runtime']))
 show_train_history(train_summary['train'],train_summary['validation'],'loss','MSE (log)')
 test_result_data=testing_network(network,testing_data)
-draw_centers_scatter_plot('center scatter plot',training_data,network,['g','r'],['o','^'])
+draw_centers_scatter_plot('center scatter plot',training_data,network,['g','r'],['o','+'])
 draw_test_result_3Dplot('3D scatter plot',test_result_data,['r','b'],['o','^'])
 draw_test_result_FIT_plot('Regression R = ',test_result_data,'b','o')
 saved_network=save_network(network)

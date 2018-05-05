@@ -18,8 +18,8 @@ question: Use LVQ neural network to classify 20 2D vector out of 3 classes.
 class_numbers=3
 input_neurons=2
 output_neurons=class_numbers
-learning_rate=0.01
-epoches=200
+learning_rate=0.001
+epoches=1500
 
 
 #%%
@@ -239,7 +239,7 @@ network_summary(network)
 train_summary=train_network(network, training_set, learning_rate,  epoches, output_neurons)
 print('Trained Network\n')
 network_summary(network)
-print('>train loss=%.5g, validation loss=%.5g, runtime=%.2fs' % (train_summary['loss'][-1], train_summary['accuracy'][-1], train_summary['runtime']))
+print('>train loss=%.5g, accuracy=%.5g, runtime=%.2fs' % (train_summary['loss'][-1], train_summary['accuracy'][-1], train_summary['runtime']))
 show_train_history(train_summary['loss'],train_summary['accuracy'],'Train History',['MSE (log)','acc'])
 test_result_data=testing_network(network,training_data)
 #draw_test_result_FIT_plot('Regression R = ',test_result_data,'b','o')

@@ -20,7 +20,7 @@ output_neurons=1
 delta=7
 alpha=0.5
 beta=0.5
-
+fuzzy_control=False
 
 #%%
 #set up
@@ -57,12 +57,11 @@ def forward_propagate(network, inputs):
     distance = np.array([])
     for neuron in hidden_layer:
         neuron['distance'] = np.linalg.norm(inputs - neuron['weights'])
-        distance=np.append(distance,neuron['output'])
+        distance=np.append(distance,neuron['distance'])
     Dmin_arg=distance.argmin()
     output_layer = network[1]
     outputs = np.array([])
     for neuron in output_layer:
-        neuron['pi'] = np.linalg.norm(inputs - neuron['weights'])
         outputs=np.append(outputs, neuron['pi'][Dmin_arg])
     return Dmin_arg,hidden_layer[Dmin_arg]['distance'],outputs
 
@@ -81,7 +80,7 @@ def train_network(network, train, delta, alpha, beta, n_outputs):
     criterion=[]
     epoch=0
     
-    while len(criterion)>=2 and criterion[-2]!=criterion[-1]:
+    while True:
         train_sum_error = 0
         for row in train:
             if len(network[0])==0:
@@ -98,6 +97,9 @@ def train_network(network, train, delta, alpha, beta, n_outputs):
         train_loss.append(train_sum_error/len(train))
         print('>epoch=%d, loss=%.4f' % (epoch, train_loss[-1]))
         epoch+=1
+        
+        if len(criterion)>=2 and criterion[-2]==criterion[-1]:
+            break
         
     return {'loss':train_loss,'runtime':time.time()-runtime}
 
@@ -157,17 +159,12 @@ def input_normalization(data_dict):
 
 #plot loss descent and accuracy during training            
 def show_train_history(loss,title,ylabel):
-    fig, ax1 = plt.subplots()
-
-    color = 'tab:red'
-    ax1.set_xlabel('Epoches')
-    ax1.set_ylabel(ylabel[0], color=color)
-    ax1.plot([i for i in range(len(loss))],loss, color=color, label='loss')
-    ax1.tick_params(axis='y', labelcolor=color)
+    plt.xlabel('Epoches')
+    plt.ylabel(ylabel)
+    plt.plot([i for i in range(len(loss))],loss, color='b', label='loss')
         
-    fig.legend(loc='upper right')
+    plt.legend(loc='upper right')
     plt.title(title)
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
     
 #view input data in 2D scatter plot
@@ -184,7 +181,7 @@ def draw_result_scatter_plot(plot_name,data_dict,color,marker):
     plt.scatter(data_dict['x'], data_dict['predict'], c=color[1], marker=marker[1], label='predict')
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.legend(loc=3)
+    plt.legend(loc=4)
     plt.title(plot_name)
     plt.show()
     

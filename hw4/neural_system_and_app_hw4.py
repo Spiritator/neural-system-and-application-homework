@@ -20,7 +20,7 @@ output_neurons=1
 delta=7
 alpha=0.5
 beta=0.5
-fuzzy_control=False
+fuzzy_delta=10
 
 #%%
 #set up
@@ -200,6 +200,33 @@ def draw_test_result_FIT_plot(plot_name,data_dict,color,marker):
     plt.title(plot_name)
     plt.show()
     
+# forward propagation of fuzzy control output
+def fuzzy_control_predict(network, row, fuzzy_delta):
+    inputs=np.array([row])
+    hidden_layer = network[0]
+    fuzzy_S_sum=0
+    for neuron in hidden_layer:
+        neuron['distance'] = np.linalg.norm(inputs - neuron['weights'])
+        if neuron['distance']<=fuzzy_delta:
+            neuron['fuzzy_S']=1-neuron['distance']/fuzzy_delta
+        else:
+            neuron['fuzzy_S']=0
+        fuzzy_S_sum+=neuron['fuzzy_S']
+    output_layer = network[1]
+    outputs = np.array([])
+    for neuron in output_layer:
+        fuzzy_out=0
+        for i in range(len(neuron['pi'])):
+            fuzzy_out+=neuron['pi'][i]*network[0][i]['fuzzy_S']
+        if fuzzy_S_sum==0:
+            print('error divide by 0')
+            fuzzy_out=0
+        else:
+            fuzzy_out=fuzzy_out/fuzzy_S_sum
+        outputs=np.append(outputs, fuzzy_out)
+    return outputs
+
+    
     
 #%%
 #prepare data set
@@ -209,7 +236,7 @@ training_data={'x':[        9,         16,         25,         32,         49,  
         
 #%%
 #training
-
+#question 2a
 draw_class_scatter_plot('Training Data Distribution',training_data,'b','o')
 training_set = input_normalization(training_data)
 network = initialize_network(output_neurons)
@@ -222,5 +249,10 @@ print('>train loss=%.5g, runtime=%.2fs' % (train_summary['loss'][-1], train_summ
 show_train_history(train_summary['loss'],'Train History','MSE (log)')
 test_result_data=testing_network(network,training_data)
 draw_result_scatter_plot('Test Result',test_result_data,['r','b'],['o','^'])
-#draw_test_result_FIT_plot('Regression R = ',test_result_data,'b','o')
+#%%
+#question 2b
+ans=fuzzy_control_predict(network, 22, fuzzy_delta)
+print('Y(22): predtion=%.4f  function=%.4f' % (ans[0],simfunc(22)))
+ans=fuzzy_control_predict(network, 36, fuzzy_delta)
+print('Y(36): predtion=%.4f  function=%.4f' % (ans[0],simfunc(36)))
 

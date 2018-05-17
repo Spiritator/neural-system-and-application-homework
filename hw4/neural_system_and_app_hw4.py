@@ -251,8 +251,16 @@ test_result_data=testing_network(network,training_data)
 draw_result_scatter_plot('Test Result',test_result_data,['r','b'],['o','^'])
 #%%
 #question 2b
-ans=fuzzy_control_predict(network, 22, fuzzy_delta)
-print('Y(22): predtion=%.4f  function=%.4f' % (ans[0],simfunc(22)))
-ans=fuzzy_control_predict(network, 36, fuzzy_delta)
-print('Y(36): predtion=%.4f  function=%.4f' % (ans[0],simfunc(36)))
+ans1=fuzzy_control_predict(network, 22, fuzzy_delta)
+print('Y(22): predtion=%.4f  function=%.4f' % (ans1[0],simfunc(22)))
+ans2=fuzzy_control_predict(network, 36, fuzzy_delta)
+print('Y(36): predtion=%.4f  function=%.4f' % (ans2[0],simfunc(36)))
+#draw output scatter plot
+plt.scatter([22,36], [simfunc(22),simfunc(36)], c='b', marker='s', label='label')
+plt.scatter([22,36], [ans1,ans2], c='r', marker='^', label='predict')
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend(loc=4)
+plt.title('Fuzzy Control Output Result')
+plt.show()
 

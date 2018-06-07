@@ -9,3 +9,6 @@ Use radial basis function ANN to simulate the function f(x,y) with radial basis 
 
 ## HW3
 Use LVQ neural network to classify 20 2D vector out of 3 classes.
+
+## HW4
+Use counterpropagation neural network and concept of fuzzy-control to estimate funtion.
